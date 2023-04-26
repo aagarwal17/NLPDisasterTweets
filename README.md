@@ -1,8 +1,9 @@
-# NLPDisasterTweets
-
-by Arun Agarwal (Submission on Kaggle as aablaze17) [Arun Agarwal](https://github.com/aagarwal17)) 
+# NLPDisasterTweets:
 
 My code for NLP Disaster Tweet Kaggle Competition. Completed for CIS 4496 (Projects in Data Science) Honors Contract.
+
+by Arun Agarwal (Submission on Kaggle as aablaze17) 
+[Arun Agarwal](https://github.com/aagarwal17)) 
 
 This repository hosts all code, documentation, and data related to our team's solution to the Kaggle competition, [*NLP Disaster Tweets*](https://www.kaggle.com/competitions/nlp-getting-started/overview). 
 The challenge of this competition is to classify Twitter tweets as 0 or 1 to represent a fake or real natural disaster, respectively.
@@ -16,6 +17,6 @@ The `Docs` directory hosts documentation for the project.
 This directory primarily hosts design documentation, reports, and presentations.
 For code documentation, see the `Code` directory.
 
-The `Data` Directory hosts the data provided by this competition. See the documentation inside this folder for more details. 
+The `Data` directory hosts the data provided by this competition. See the documentation inside this folder for more details. 
 
 The `Results File` directory hosts the submission csv file for the Kaggle competition, generated after having run the code in the Code directory.
