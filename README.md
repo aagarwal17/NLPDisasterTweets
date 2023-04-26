@@ -16,4 +16,6 @@ The `Docs` directory hosts documentation for the project.
 This directory primarily hosts design documentation, reports, and presentations.
 For code documentation, see the `Code` directory.
 
-The 'Results File' directory hosts the submission csv file for the Kaggle competition, generated after having run the code in the Code directory.
+The `Data` Directory hosts the data provided by this competition. See the documentation inside this folder for more details. 
+
+The `Results File` directory hosts the submission csv file for the Kaggle competition, generated after having run the code in the Code directory.
