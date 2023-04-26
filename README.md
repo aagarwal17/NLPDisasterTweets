@@ -15,3 +15,5 @@ The `Code` directory hosts code related to the project and its corresponding doc
 The `Docs` directory hosts documentation for the project.
 This directory primarily hosts design documentation, reports, and presentations.
 For code documentation, see the `Code` directory.
+
+The 'Results File' directory hosts the submission csv file for the Kaggle competition, generated after having run the code in the Code directory.
