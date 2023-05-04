@@ -4,151 +4,50 @@ Professor Abha Belorkar
 
 CIS 4496 - Projects in Data Science, Honors Contract
 
-April 28th, 2023
+April 30th, 2023
 
-# Data Report
+# Data Report - NLP Disaster Tweets
 
 **Data Introduction:**
 
-Our competition data primarily consists of 256x256 RGB images of two groups: (1) Monet paintings and (2) camera photos.
-Specifically, our initial dataset as provided by Kaggle includes 300 Monet paintings and 7038 photos in both JPEG and TFRecord format (TensorFlow's custom data format).
-We will primarily work with the TFRecord format; however, we will have the JPEG files as a fallback should any difficulties arise when using the TFRecord format.
-The total competition data including both formats amounts to 385.87 MB---small enough to be stored on a personal computer.
-Our group also utilizes image data for additional paintings provided by the authors for not only Monet but Van Gogh, Ukiyo-e, and Cezanne as well.
+The competition data consists of 10,000 hand-classified text tweets, split amongst training and test data files. The data was gathered by Figure-Eight Website and uploaded to Appen as a pre-labeled dataset (hand classified as disaster or non-disaster) (3). The competition includes three files, the mentioned training and test csv files and a sample_submission csv file to be used for submission format. The train and test datasets include 5 columns: 
+- **id**: the identifier for each tweet
+- **text**: the tweet
+- **keyword**: the key word from tweet (many are blank)
+- **location**: the location the tweet was sent from (many are blank)
+- **target**: the classification label of disaster (1) or not (0)
 
-While the data size is relatively small, the problem requires intense computation within a limited timeframe, so we make the data accessible by TPU-equipped machines for the best results.
-Kaggle conveniently provides access to the initial dataset stored in their systems through their Kaggle Notebooks (Jupyter Notebook service provided by Kaggle) which provide free limited access to TPU computers.
-Indeed, we use Kaggle Notebooks to operate on the data and perform the majority of the computation required for the project.
-So far in the project, we have not run into rate limitation issues on Kaggle, but we have run into a variety of problems involving the use of the Temple HPC node, such as the other users hogging the GPUs on the node, along with issues finding access to any useable GPU on the Node.
-Due to the relative reliance on Kaggle compared with the Temple HPC node, we anticipate working on Kaggle for the remainder of the project.
+The data appears to change over time, as previous comeptitors were seen to have different data than what is currently being used by the competition. More information regarding the data is learned through EDA and preprocessing, as will be discussed below.
+
 
 **Data Cleaning and Processing Techniques:**
 
-For this project, we needed to generate multiple models, as our scope extends beyond the Kaggle competition to include more generic models using the training and test datasets for Monet, Van Gogh, Cezanne, and Ukiyo-e, provided by the authors.
-Thus, we discuss data augmentation with regard to the competition and the other artists separately.
-
-With respect to the Kaggle Competition, we used approximately 300 Monet paintings and 7,000 photos that were pulled from the competition.
-These paintings and photos were pre-converted to TFREC format by the competition authors.
-Therefore, when we initially developed our model, our model took in TFREC data as its input.
-TFREC (short for TensorFlow record) is a custom data format to store sequences of binary records (6).
-With the TFREC format, we can make use of the TensorFlow tf.data API to easily and efficiently read and process the image data (7).
-For example, we used TFREC-related objects in Tensorflow, such as the TFRecordDataset object and its various methods, such as .batch(), or .shuffle(), to shuffle our data and get batches of our data easily.
-TFRecordDataset also includes a .map() method with a "num_parallel_calls" option, which allows us to read and augment the data in parallel via multithreaded processing.
-Setting "num_parallel_calls" to tf.data.AUTOTUNE, the API will automatically determine how many parallel calls can be made depending on CPU availability (7).
-
-Since we were working with "pre-cleaned" data that was provided by the competition, we did not have to make use of any data-cleaning techniques to make our data usable.
-We were also uncomfortable with the idea of filtering out certain pieces of data, as we already were operating with a relatively small dataset.
-
-However, we did experiment with a wide variety of augmentation for our data in the competition.
-Initially, our group experimented with Differentiable Augmentation (DiffAugment)---a simple method that improves the data efficiency of GANs by imposing various types of differentiable augmentations (e.g. color, translation, and "cutout" augmentations) on both the real and generated images (2).
-Unfortunately, this technique did not serve to benefit our performance, as many of the augmentations that were applied to our paintings seemed to alter the artist's distinctive painting style, such as by altering the paintings' colors poorly.
-We also ran into some time and memory limits when trying to implement the technique.
-The research paper that introduced the DiffAugment technique discusses that it should be used for "vanilla" GANs instead of GANs used for image style transfer.
-Instead of using DiffAugment which augments the images in each training step, we have opted to augment all the images, including Monet paintings and photos, through randomly resizing, cropping, rotating (by a multiple of 90 degrees), and flipping the images before training even begins.
-
-![](../Project/Images/image_augmentation.png)
-
-Figure 1: Examples of augmented images using resizing, cropping, rotation, and flipping
-
-(self-generated)
-
-To verify that these augmentations are working as expected, we have created a script to save the augmented images, as shown in Figure 1.
-These augmentations boosted the performance of our model, as they introduced more diversity into the training data without compromising the artist's distinctive style.
-We discuss the performance improvement further in the Model and Performance Report.
-More effective augmentation techniques for images that do not disrupt a distinctive style of an image is an area of research that should be explored further in the near future.
-
-With respect to our generic models, we did not explicitly use the competition dataset, instead we used the datasets that were provided by the CycleGAN authors.
-For each of the four artists, the authors provided four folders: training data for paintings, training data for photographs, testing data for paintings, and testing data for photos.
-Unlike the data in the competition, the author's data were in JPG format.
-Therefore, we needed to convert these JPG images into TFREC format to be usable in our pipeline.
-This required writing multiple scripts to implement the process.
-In addition, we developed a standardized train/test split based on the CycleGAN's authors\' data.
-Thus, we generated the testing data for these models by augmenting 10% of the existing training data for an artist through flips and rotations.
-We do not crop the images in these new augmentations in an attempt to reduce pixelation.
-This data was then added to the existing test dataset for that artist, allowing us to expand the test data size while also introducing variation.
+The main task for this competition involved the cleaning and processing techniques performed to make the data usable. First, the libraries used for preprocessing included pandas (to view the data frame), numpy, string (for various text cleaning items), re (for regex), and nltk (to obtain a list of stopwords). After reading in the raw data and performing some exploratory data analysis, I realized that the text was not cleaned at all; that is, it was taken straight from user’s tweets and inserted into the data file. I began by examining the preprocessing steps taken by other competitors in the competition as well as the previous team who worked on this competition (1, 2), as I have never performed text preprocessing in my undergraduate education and needed some assistance to determine good starting steps. The previous team for this course made a list of abbreviations and their expanded word forms, which I utilized to expand the abbreviations in my copy of the data as well (2). I then lower-cased all characters/words, as the sentence case version of the tweet did not seem to provide any additional value. It also made more sense for “Upper” and “upper” to represent the same word rather than different instances, for example. Next, based on one of my findings from the exploratory data analysis, it appeared that emojis did not get loaded into the data frames correctly and were thus just causing issues with the accuracy of the model. I decided to remove all emojis and special characters using their Unicode values; however, it is likely that they could have provided value if the Unicode characters were translated into word representations using an online dictionary. Similar to the emojis, one of the charts from the exploratory data analysis revealed that punctuation did not provide any additional value and could be confusing at times; therefore, all punctuation was removed. From here, the main manual preprocessing step occurred, thanks to another user on Kaggle (2). This user manually went through the text data to expand contractions and acronyms, replace slang and informal abbreviations, fix typos, and write out usernames and hashtags in separate words (2). This user made his code publicly available on the Help page of the competition; therefore, almost all teams/competitors make use of this code block for the manual cleaning of their data, including me, as it would be futile to not make use of the manual effort of another. After this, the exploratory data analysis also helped reveal that URLs did not provide additional value and were thus removed from the text; it should be noted that if the URLs were manually expanded, there may be words within them that would help to indicate the credibility of the tweet. I also removed HTML beacons and non-printable characters, as suggested by others. After all these preprocessing steps, I remeasured my model performance and noticed I was still performing far below other competitors; thus, I decided to explore the data further. This led to my decision to do more manual cleaning, for which I wrote my own function for. After performing all this preprocessing, there was a lot of whitespace produced, which I removed so that there would only be one space in between words. Finally, all this preprocessing led to duplicate instances to be found in the data that did not show up before preprocessing. In context, this makes sense, as humans tend to copy tweets of other people often rather than make original content (just switching up a few words or adding a bit of text). With these duplicate instances, I manually relabeled them, just as other competitors in the competition did. Considering that all these samples were manually labeled by humans to begin with, it seems fine for me to make decisions myself of what the correct labels for these samples should be. It also seemed obvious when actually reading the tweets. Interestingly, my preprocessing steps led to approximately 50 more mislabeled instances than most other competitors, which is most likely due to the additional removals that I did that most other competitors did not. I ended my preprocessing phase by creating four different versions of the dataset, one with mislabeled and duplicates samples kept in, another with no mislabels but with duplicates, a third with mislabels and no duplicates, and a final with no mislabels nor duplicates. Only the last of these four processed datasets could be tested in our final model due to extensive runtimes and minimal work time. It should also be noted that, while I filled the null values in the keyword and location columns with “no_keyword” and “no_location”, respectively, these columns ended up being removed from the data as there were simply too many blanks. 
 
 **Feature Extraction Techniques:**
 
-In a similar vein to the data cleaning and processing techniques, we did not use any explicit feature extraction techniques from our paintings.
-Since we used CycleGANs from the start of the project, we used convolutional neural networks (CNNs) within our model in order to process and gather features from the images.
-One of the key features about CNNs is that they learn what lower level features to extract from an image during the training, rather than those features being manually extracted by humans.
-Due to this, manual feature extraction did not occur prior to the feature being extracted by the CNNs in our model.
+Rather than focus on the feature extraction techniques, I will mention the 12 features generated from these techniques. This is because the feature extraction was simply done using the apply function and various functions available in the string and nltk libraries. The first of these features was word_count, which was simply the number of words in the text. A graph of the distribution of this feature revealed there was a noticeable difference in words between disaster and non-disaster tweets. The next feature was unique_word_count, to get the number of unique words in the instance. This feature displayed a normal distribution with a noticeable difference between disaster and non-disaster tweets, similar to the word count. Next, stop_word_count counts the number of stop words in the text instance, measured using the stop words dictionary from nltk. The distribution was relatively the same for the two classifications except for smaller counts of stop words, in which more disaster tweets existed with less stop words. In context, this may make sense, as I would expect disaster tweets to be from sources that use more formal language. Moving on, url_count counted the number of URLs provided in the instance. As mentioned in the previous section, URLs were removed based on the extremely similar distribution between the two classifications. The next feature created was mean_word_length, which is the average character count for the words in the text instance. We would expect disaster tweets to have larger mean word lengths, which was exactly what was seen when I plotted the distribution. Therefore, this was another feature that could help to distinguish between disaster and non-disaster. We also had measured the mode word length as another feature and noticed the same pattern seen for mean_word_length. Then, char_count was simply a count of the number of characters in the text, providing similar value to combining word_count and mean_word_length. I ended up noticing that disaster tweets had a larger character count more often than non-disaster tweets, indicating the feature can provide value. Similar to url_count, punctuation_count and emoji_count get a count of the number of punctuation marks and emojis in the text, respectively. Viewing these distributions also led to the decision that their respective characters did not provide value and were removed. Moving on, hashtag_count and mention_count were counts of the number of hashtags and mentions in the text, which both did not provide additional information. The final feature created was slang_word_count to count the number of slang words in the text. In context, those tweets containing more slang are more likely to represent non-disaster tweets; however, I was struggling to find an appropriate list/dictionary that contained a lot of possible slang words, so I could not fine-tune this feature enough. It therefore could not provide any additional value. I also wanted to created features based off the unigrams, bigrams, and trigrams, as other competitors noticed interesting patterns with these, but I unfortunately ran out of time to do so. One large mistake I believe I made with these features is not including them in my final BERT model. At the time, I did not realize how much time would end up getting invested into making the BERT model work, as well as how long it would take to run one instance. Thus, by the time I finished one model run, I needed to finish up working on the code and instead spend the remainder of my time on the writing portion. For the future, I should not only try my other three processed versions of the data, but I also need to try these versions with the valuable features engineered included. 
 
 **Trends in Our Data:**
 
-As a step toward better understanding our data, we have created a script to plot the RGB distribution of a set of images to understand the data better.
-We compare the RGB distribution amongst images as well as between photos and paintings to determine how to modify our model.
-Figure 2 shows a plot of the RGB distribution for the first 100 Monet paintings for our generic model, the first 100 photos, and the first 100 photo-to-Monet images (the zeros are excluded since they distort the plot).
-Figures 3--5 display these distributions for Ukiyo-e, Cezanne, and Van Gogh, respectively.
-We observe that when generating the photo-to-Monet images, the images tend toward the RGB distribution of the Monet paintings, as expected.
-Therefore, these distributions serve as a small sanity check that our generic model is transferring the color/style well.
-It is interesting to note that the distributions of original paintings in comparison to the converted painting distributions appear more jagged, suggesting that our models tend to smooth out the color distributions.
-These figures also contain a black line for the brightness, which represents the luminance of the images.
-This is calculated by the following formula: brightness = 0.2126R + 0.7152G + 0.0722B, where R, G, and B, represent the red, green, and blue distributions, respectively (5).
-Viewing the brightness distribution provides an additional way of analyzing our data and validating our results.
-The RGB distribution of individual images can be examined on our website, as described later.
+Various trends in the data were noticed thanks to the charts created in the exploratory data analysis. First, by examining the percentage of missing values in each column of both the training and test data, I learned that the datasets are most likely taken from the same sample. This is because both sets had 0.8% of keyword instances and 33% of location instances missing. Next, by graphing the most common locations from the data, I was able to notice a lot of locations that seemed dirty/insensible. Therefore, I realized that the locations were not automatically generated but rather user-inputted. I was provided the information that the keyword column was user-inputted, and it did not appear to be as dirty. I also noticed that every single keyword that existed in the training dataset appeared at least once in the test dataset, again indicating that the training and test data came from the same sample. Examining the most common keywords allowed me to also see that this column could potentially provide value, as many of those words could only be used in one context (in contrast to “ablaze” that can be used in multiple, for example). Still, the dirtiness of location and the large number of blanks in both keyword and location led to their removal from the data. Moving on, as described in the previous section, distributions of the meta features led us to make conclusions about which features could be helpful in distinguishing between disaster and non-diaster tweets. These distributions overall helped us realize disaster tweets are written in a more formal way with longer words compared to non-disaster tweets because most of them are coming from news agencies. Furthermore, non-disaster tweets have more typos than disaster tweets because they are coming from individual users. All the meta features had their distributions graphed with a comparison of classification (disaster/non-disaster) and dataset (training/test). Since all meta features demonstrated almost identical distributions for the two datasets, I was able to further validate my claim that the data comes from the sample. In general, url_count, hastag_count, and mention_count could not provide value while word_count, unique_word_count, stop_word_count, mean_word_length, char_count, and punctuation_count could provide value thanks to the very different distributions for disaster and non-distaster tweets. One final thing I looked at was the distribution of the target variable. Specifically, 57% of text instances represented fake disaster tweets and the remaining 43% were real disaster tweets. Understanding that a slight class imbalance exists within the data is important for hyperparameter tuning in the model (led to the decision to use stratified K fold instead of normal cross validation, for example). 
 
-[<img src="../Project/Images/monet_painting_rgb.png" width="256" height="256">](../Project/Images/monet_painting_rgb.png)
-[<img src="../Project/Images/monet_photo_rgb.png" width="256" height="256">](../Project/Images/monet_photo_rgb.png)
-[<img src="../Project/Images/monet_generated_rgb.png" width="256" height="256">](../Project/Images/monet_generated_rgb.png)
+**Trend Relation to Problem Statement:**
 
-Figure 2: RGB distribution of the first 100 Monet paintings (left), the first 100 photos (middle), and the first 100 generated photo-to-Monet images with our generic model (right), with zeros excluded (3)
-
-[<img src="../Project/Images/ukiyoe_painting_rgb.png" width="256" height="256">](../Project/Images/ukiyoe_painting_rgb.png)
-[<img src="../Project/Images/ukiyoe_photo_rgb.png" width="256" height="256">](../Project/Images/ukiyoe_photo_rgb.png)
-[<img src="../Project/Images/ukiyoe_generated_rgb.png" width="256" height="256">](../Project/Images/ukiyoe_generated_rgb.png)
-
-Figure 3: RGB Distribution of the first 100 Ukiyo-e paintings (left), the first 100 photos (middle), and the first 100 generated photo-to-Ukiyo-e images (right), with zeros excluded (3)
-
-[<img src="../Project/Images/cezanne_painting_rgb.png" width="256" height="256">](../Project/Images/cezanne_painting_rgb.png)
-[<img src="../Project/Images/cezanne_photo_rgb.png" width="256" height="256">](../Project/Images/cezanne_photo_rgb.png)
-[<img src="../Project/Images/cezanne_generated_rgb.png" width="256" height="256">](../Project/Images/cezanne_generated_rgb.png)
-
-Figure 4: RGB Distribution of the first 100 Cezanne Paintings (left), the first 100 photos (middle), and the first 100 generated photo-to-Cezanne images (right), with zeroes excluded (3)
-
-[<img src="../Project/Images/vangogh_painting_rgb.png" width="256" height="256">](../Project/Images/vangogh_painting_rgb.png)
-[<img src="../Project/Images/vangogh_photo_rgb.png" width="256" height="256">](../Project/Images/vangogh_photo_rgb.png)
-[<img src="../Project/Images/vangogh_generated_rgb.png" width="256" height="256">](../Project/Images/vangogh_generated_rgb.png)
-
-Figure 5: RGB Distribution of the first 100 Van Gogh Paintings (left), the first 100 photos (middle), and the first 100 generated photo-to-Van Gogh images (right), with zeroes excluded (3)
-
-We would also like to mention that effort was made to create other exploratory data analysis figures/charts or at least examine the data further.
-For example, we looked into analyzing brush strokes to boost model performance, as suggested by the Professor, but more time will be required before we are capable of implementing this (8).
-After extensive research, we felt that any further data exploration would be too difficult without labeled images or the charts that would be created would not provide any additional insight to that being provided by the RGB distribution charts.
-We also want to point out that we did not notice any other competitors exploring the data either.
+I answer this question in the previous section. Overall, the observed trends, such as the cleanliness of the keyword and location columns and the distribution of the target variable helped in deciding the best course of action during the preprocessing phase. Therefore, they relate to my project problem statement by helping me to build a model that better distinguishes between disaster and non-disaster tweets. The engineered features helped in better understanding patterns in the data, which also led to certain preprocessing decisions and, in turn, a better model. However, the omission of these features from the BERT model may have led to a slightly worse performance compared to the top performers in this competition. 
 
 **Does the data foretell any issues that may arise in later stages of
 the project lifecycle?**
 
-While the data did not explicitly tell us of any issues that arose in the project lifecycle, the nature of the data did predict some issues that we ran into later on in the project.
-First and foremost, the relatively small number of paintings in the dataset, especially in the competition data, likely hindered the performance of our models.
-While it is not possible to increase the amount of paintings that Monet painted, working with a small sample size likely caused our model to experience some amount of overfitting.
-Like many deep learning architectures, GANs experience benefits with larger amounts of training data, so the small amount of training data likely hindered our GANs, which in turn hindered our CycleGAN models.
-Anticipating this issue, our team experimented with increasing the amount of training data in order to create more "generic" models, along with augmenting our training data.
-
-Another issue in the project lifecycle that our data foreshadowed was the relatively long runtimes for generating weights for our models.
-While we had a relatively small amount of images, each image itself is dense with data, as it can be represented as a 256 X 256 X 3 tensor.
-Thus, for one of our generic models with hundreds of epochs and operating with thousands of images per epoch, it could take hours or potentially days to train our models.
-These long runtimes caused significant delays and were a major barrier in experimenting with our various models.
-Despite there being a relatively small amount of image data, the high density of data for an image foreshadowed difficulties we had in training our models.
-This is a common problem, so our team used a variety of training accelerators in our training process, such as TPUs (Tensor Processing Units), which are specifically designed to optimize the training of image data.
-The use of TPUs made the training of our CycleGANs feasible for this project, but constraints still existed, as creating a top-performing generic model took approximately 8 hours on a TPU.
-While technological advancements have enabled us to participate in CycleGAN modeling, advancements in AI accelerators would have lowered our barriers even further and allowed more experimentation with our models.
+The data does foretell some issues that would arise in later stages of the project lifecycle. While many of have already been mentioned in the prior sections, I will repeat the most important findings here. First, the large amount of missing data foretold that they would lead to worse model performance later on, so they were removed. Next, the almost identical distributions existing between training and test data foretold that the model should not have difficulty with performance on the test data. Moving on, the large amount of mislabeled samples foretold that the model may have worse performance, as having two exactly identical instances with different target labels is sure to confuse the model. Finally, the large amount of duplicate instances in the data foretold the model may overfit if the data is kept in; thus, the BERT model we tested had duplicates (and mislabels) removed.
 
 **References:**
 
-1.  Jang, A., Uzsoy, A. S., & Culliton, P. (2020). _I\'m Something of a Painter Myself_. Kaggle. Retrieved April 3, 2023, from [https://www.kaggle.com/competitions/gan-getting-started](https://www.kaggle.com/competitions/gan-getting-started)
-
-2.  Zhao, S., Liu, Z., Lin, J., Zhu, J.-Y., & Han, S. (2020, December 7). _Differentiable Augmentation for Data-Efﬁcient GAN Training_. Arxiv. Retrieved April 5, 2023, from [https://arxiv.org/pdf/2006.10738](https://arxiv.org/pdf/2006.10738)
-
-3.  Zhu, J.-Y. (2023, March). _Junyanz/Pytorch-Cyclegan-and-pix2pix: Image-to-image translation in PyTorch_. GitHub. Retrieved April 6, 2023, from [https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
-
-4.  Wikipedia. (2023, March 31). _Luma (video)_. Wikipedia. Retrieved April 6, 2023, from [https://en.wikipedia.org/wiki/Luma\_(video)](<https://en.wikipedia.org/wiki/Luma_(video)>)
-
-5.  Stack Overflow. (2009, February 27). _Formula to determine perceived brightness of RGB color_. Stack Overflow. Retrieved April 6, 2023, from [https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color/596243#596243](https://stackoverflow.com/questions/596216/formula-to-determine-perceived-brightness-of-rgb-color/596243#596243)
-
-6.  TensorFlow. (2022, December 15). _TFRecord and tf.train.Example_. TensorFlow. Retrieved April 6, 2023, from https://www.tensorflow.org/tutorials/load_data/tfrecord
-
-7.  TensorFlow. (2022, December 15). _Better performance with the tf.data API_ . TensorFlow. Retrieved April 6, 2023, from [https://www.tensorflow.org/guide/data_performance](https://www.tensorflow.org/guide/data_performance)
-
-8.  Kotovenko, D., Wright, M., Heimbrecht, A., & Ommer, B. (2021, March 31). _Rethinking Style Transfer: From Pixels to Parameterized Brushstrokes_. arXiv.org. Retrieved April 6, 2023, from https://arxiv.org/abs/2103.17185
+1. [Previous Group GitHub](https://github.com/bmagdamo1/DisasterTweets)
+2. [Gunes Evitan Kaggle Competitor Code](https://www.kaggle.com/code/gunesevitan/nlp-with-disaster-tweets-eda-cleaning-and-bert)
+3. [NLP Disaster Tweet Data Source](https://www.figure-eight.com/data-for-everyone/)
+4. [NLP Disaster Tweet Kaggle Competition](https://www.kaggle.com/competitions/nlp-getting-started/overview/faq)
+5. [Transformers Modeling BERT](https://huggingface.co/transformers/v3.5.1/_modules/transformers/modeling_bert.html)
+6. [How To Train a BERT Model - Towards Data Science](https://towardsdatascience.com/how-to-train-a-bert-model-from-scratch-72cfce554fc6)
+7. [GitHub NLP Tokenization Code](https://github.com/tensorflow/models/blob/master/official/nlp/tools/tokenization.py)
+8. [My GitHub Repository](https://github.com/aagarwal17/NLPDisasterTweets)
