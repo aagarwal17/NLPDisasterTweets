@@ -41,5 +41,12 @@ Overall, I achieved a final F1 score of 0.812, placing me 311th/1228 on the lead
 While not mentioned in the instructions for the model and performance report, I wanted to provide a brief overview of what future steps for this project would include, since I did not have time to complete all the steps I wanted to. First, as mentioned prior, I would try including the features I engineered into my BERT model to see if they would boost performance. I would do variations of the inclusion of these features as well (potentially even doing PCA) to also measure the performance changes. Next, I would also try the other three datasets I created, as mentioned before. Moving on, I would experiment more with back translation. The previous team for this course tried to make use of this technique–which translates the text into another language and back into English–but ran into issues with runtime. I personally could not get their function to run with my Python library versions, and due to my time constraints, I decided to put this technique on the back burner. I am certainly interested to see how it could affect performance, however. The next thing I would like to do in the future is to experiment more with BERT model parameters. For almost all parameters fed into this model, I just used those values being used by top competitors in the competition due to my lack of time to play around with them. Evidently, hyperparameter tuning can lead to model performance improvement and thus should be done with my processed version of the data. Finally, I would like to try other deep learning models in the future to 1) learn about other models that would be good to use for such a NLP problem, 2) try to code and successfully run other deep learning models, and 3) see how they change the model performance. 
 
 **References:**
-
+1. [Previous Group GitHub](https://github.com/bmagdamo1/DisasterTweets)
+2. [Gunes Evitan Kaggle Competitor Code](https://www.kaggle.com/code/gunesevitan/nlp-with-disaster-tweets-eda-cleaning-and-bert)
+3. [NLP Disaster Tweet Data Source](https://www.figure-eight.com/data-for-everyone/)
+4. [NLP Disaster Tweet Kaggle Competition](https://www.kaggle.com/competitions/nlp-getting-started/overview/faq)
+5. [Transformers Modeling BERT](https://huggingface.co/transformers/v3.5.1/_modules/transformers/modeling_bert.html)
+6. [How To Train a BERT Model - Towards Data Science](https://towardsdatascience.com/how-to-train-a-bert-model-from-scratch-72cfce554fc6)
+7. [GitHub NLP Tokenization Code](https://github.com/tensorflow/models/blob/master/official/nlp/tools/tokenization.py)
+8. [My GitHub Repository](https://github.com/aagarwal17/NLPDisasterTweets)
 
