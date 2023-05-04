@@ -4,247 +4,42 @@ Professor Abha Belorkar
 
 CIS 4496 - Projects in Data Science, Honors Contract
 
-April 28th, 2023
+April 30th, 2023
 
 # Model and Performance Report
 
 1.  **Modeling Algorithm:**
 
-The unique style of French painter Claude Monet, such as his color choices and brush strokes, will be imitated using Generative Adversarial Networks (GANs), which operate by training a neural network with two parts (described further in Methods).
-Our task within the scope of the competition is to build a GAN that generates 7,000 to 10,000 realistic Monet-style images of dimensions 256 X 256 X 3 (RGB) (1).
+Twitter Tweets were classified as either representing a disaster (1) or not (0) using a transformer model, a type of deep learning model that adopts the mechanism of self-attention, differentially weighting the significance of each part of the input data. Such models are primarily used in Natural Language Processing (NLP) and Computer Vision (CV); thus, we use an implementation of one such transformer model called Bidirectional Encoder Representations from Transformers (BERT) from TensorFlow models (5). BERT is a family of masked-language models that is used to help computers understand the meaning of ambiguous language in text by using surrounding text to establish context. This model has been pre-trained for English on the Wikipedia and BooksCorpus. In this competition, we need to train a deep learning model on text data (that is, our task is natural language processing), and since this particular task contains the added difficulty of understanding human language ambiguity for proper classification, a BERT implementation becomes an excellent choice. This model is taken from the TensorFlow Models GitHub repository in tensorflow/models/official/nlp/bert. The model is downloaded by enabling “Internet” in the Kaggle kernel. It uses L = 12 hidden layers (Transformer blocks), a hidden size of H = 768, and A = 12 attention heads. The inputs have also been “uncased”, which means that the text has been lower-cased before tokenization into word pieces, and any accent markers have been stripped. Parameters such as lr, epochs, and batch_size are used to control the learning process. I did not have time to tune these parameters, so I simply used those found to be optimal by other competitors. There are no dense or pooling layers added after the last layer of BERT. SGD is used as an optimizer because other optimizers were found to have a hard time while converging by other competitors. 
+With this model, we make sure to use cross validation to reduce overfitting and boost performance. KFold is a cross-validator that divides the dataset into k folds. In contrast, StratifiedKFold ensures that each fold of dataset has the same proportion of observations with a given label. This is great for classification problems where we want the ratio between the target classes to be the same in each fold as it is in the full dataset. I make use of stratified K fold for cross validation due to the slight class imbalance between disaster and non-disaster tweets. This version of cross validation is also chosen due to the nature of the split used to create the training and test set. That is, it was found that the training and test sets are split inside “keyword” groups, which signifies the “keyword” column is stratified when creating the two data sets. That is, every keyword group exists in both the training and test datasets, and they are from the same sample. This should then be replicated within the model to achieve optimal performance. I set shuffle to True for extra training diversity. I use two folds for StratifiedKFold. 
+Input text needs to be tokenized for this model and is done using FullTokenizer from Tensorflow models (7). Tokenization is used in natural language processing to split paragraphs and sentences into smaller units that can be more easily assigned meaning. This BERT model makes use of the FullTokenizer class from tensorflow/models/official/nlp/bert/tokenization. For this tokenizer, we tune the max_seq_length parameter to tune the sequence length of text, which served to boost model performance. 
+While the BERT model was the final model used for the competition and led to my best performance, it should be noted that different non-deep learning models were used in earlier phases of the project. Since we only had two hours per week to work on this competition, I needed a simple way to check model performance throughout without having to work on writing out a full deep learning model. In the beginning, I simply used a count vectorizer and Ridge Classifier with no parameter tuning and 3-fold cross validation to output some score for the competition. This served as my baseline model and was used until the EDA phase ended and preprocessing began. After the preprocessing steps were implemented, I utilized a slightly more robust model, Logistic Regression. This model also had no parameter tuning, but since this model is known for its ability to perform well in binary classification tasks, it served as a great burner model for testing out my preprocessing decisions (seeing if each decision would lead to improved model performance). The code for these models can be found within the GitHub repository under “Code/Tutorial.ipynb” and “Code/LogisticRegression.ipynb”, respectively. Since they were simple models that could run in a few seconds, the code was able to be run locally and was not tested on the Kaggle servers. 
 
-A GAN (Generative Adversarial Network) is an innovative idea for generative AI, first proposed by Ian Longfellow and his corroborators in 2014 (3).
-A GAN consists of two subcomponents, which are the generator and the discriminator (3).
-In the initial form of GANs, the generator, _G_, takes in a random vector input, _z_, and outputs a generated value known as _G(z)_ (3).
-The discriminator, _D_, takes in either a real or fake input, _x,_ and outputs a scalar probability, _D(x)_, indicating whether the input is real or fake (3).
-Formally, GANs are trained by playing a two-player min-max game with a Value Function _V(G, D)_ (3).
-The key discovery by Goodfellow and others is that optimizing these subcomponents concerning this min-max game creates a generator that, in theory, will produce fake inputs that look indistinguishable from real inputs (3).
+2.  **Feature Engineering Techniques:**
 
-![](../Project/Images/value_function.jpg)
+As mentioned in the Data Report, the feature extraction/engineering was simply done using the apply function and various functions available in the string and nltk libraries. Therefore, rather than focus on the feature extraction techniques, I will mention the 12 features generated from these techniques. The first of these features was word_count, which was simply the number of words in the text. A graph of the distribution of this feature revealed there was a noticeable difference in words between disaster and non-disaster tweets. The next feature was unique_word_count, to get the number of unique words in the instance. This feature displayed a normal distribution with a noticeable difference between disaster and non-disaster tweets, similar to the word count. Next, stop_word_count counts the number of stop words in the text instance, measured using the stop words dictionary from nltk. The distribution was relatively the same for the two classifications except for smaller counts of stop words, in which more disaster tweets existed with less stop words. In context, this may make sense, as I would expect disaster tweets to be from sources that use more formal language. Moving on, url_count counted the number of URLs provided in the instance. As mentioned in the previous section, URLs were removed based on the extremely similar distribution between the two classifications. The next feature created was mean_word_length, which is the average character count for the words in the text instance. We would expect disaster tweets to have larger mean word lengths, which was exactly what was seen when I plotted the distribution. Therefore, this was another feature that could help to distinguish between disaster and non-disaster. We also had measured the mode word length as another feature and noticed the same pattern seen for mean_word_length. Then, char_count was simply a count of the number of characters in the text, providing similar value to combining word_count and mean_word_length. I ended up noticing that disaster tweets had a larger character count more often than non-disaster tweets, indicating the feature can provide value. Similar to url_count, punctuation_count and emoji_count get a count of the number of punctuation marks and emojis in the text, respectively. Viewing these distributions also led to the decision that their respective characters did not provide value and were removed. Moving on, hashtag_count and mention_count were counts of the number of hashtags and mentions in the text, which both did not provide additional information. The final feature created was slang_word_count to count the number of slang words in the text. In context, those tweets containing more slang are more likely to represent non-disaster tweets; however, I was struggling to find an appropriate list/dictionary that contained a lot of possible slang words, so I could not fine-tune this feature enough. It therefore could not provide any additional value. I also wanted to created features based off the unigrams, bigrams, and trigrams, as other competitors noticed interesting patterns with these, but I unfortunately ran out of time to do so. One large mistake I believe I made with these features is not including them in my final BERT model. At the time, I did not realize how much time would end up getting invested into making the BERT model work, as well as how long it would take to run one instance. Thus, by the time I finished one model run, I needed to finish up working on the code and instead spend the remainder of my time on the writing portion. For the future, I should not only try my other three processed versions of the data, but I also need to try these versions with the valuable features engineered included. A discussion of how these features serve to help the goals of this project is also provided within the Data Report.
 
-(3)
+3.  **Performance Metrics:**
 
-However, on a more intuitive level, GANs can be described in Figure 1:
+This competition measures performance using F1 score, the harmonic mean of the precision and recall. F1 can be calculated as 2 * (precision * recall) / (precision + recall), where precision measures the amount of actually positive samples out of all examples predicted positive and recall measures how many samples were correctly classified positive out of all the actual positives that exist. We measure precision as TP/(TP + FP) and recall as TP/(TP+FN). TP (true positive) is predicted positive/1 and actually positive/1, FP (fall positive) is predicted positive/1 and actually negative/0, TN (true negative) is predicted negative/0 and actually negative/0, and FN (false negative) is predicted negative/0 and actually positive/1. F1 score makes sense for this competition task as it is a very common scoring metric for classification models. However, the score is not usually that informative without considering Accuracy, Precision, and Recall as well because the two classes here are almost balanced, making it harder to tell which class is more difficult to predict. Thus, we output scores for all four metrics after every epoch for the given training and validation sets. 
+	It should be noted that this competition has perfect F1 scores on the leaderboard due to the test set labels being publicly available online. That is, people cheat in their submissions and just submit the correct solution as their own. However, considering this is a “Getting Started”/Learning competition with no prize attached to it, it does not really matter how one places in the competition. Rather, one should aim for scores in the mid 80s, as those top performing competitors that do not cheat achieve such a score. It should also be noted that there is a two-month rolling window for submissions into this competition, so those competitors that decide to cheat get flushed out every few months. One final thing to note is that this competition has only one leaderboard; that is, there is no separation between private and public scores. At the end of the day, this does not really affect what anyone would decide to do, as this is still a “Getting Started” competition. 
 
-![](../Project/Images/gan_diagram.svg)
+4.  **Model Performance Evaluation:**
 
-Figure 1: Diagram of GAN Process (4)
+We discuss our model performance through each stage of the project. First, for our baseline/tutorial model, we did not upload our code or submission to Kaggle as we wanted to focus on getting the code to run locally first. Thus, we outputted F1 scores for the training test using 3-fold cross validation. The three F1 scores outputted were 0.594, 0.565, and 0.641, leading to an average F1 score of 0.60. That is, with no preprocessing nor cleaning of the data, we still managed to achieve an F1 score of approximately 0.60. Since the train and test data come from the same sample, it is fair to assume that we would see a similar score if the code was submitted to the competition. 
+	Next, for our Logistic Regression model that made use of some preprocessing techniques, we again use 3-fold cross validation and output F1 scores for each of our 4 created processed datasets (as mentioned in the Data Report). For the dataset with mislabels and duplicates kept in, we saw F1 scores of 0.61169102, 0.54718876, and 0.60039761. For the dataset with mislabels but no duplicates, we saw F1 scores of 0.5789153, 0.53946621, and 0.59375. For the dataset with no mislabels but duplicates kept in, we saw F1 scores of 0.62434418, 0.54313425, and  0.62040816. Finally, for the dataset with no mislabels and no duplicates (which also gets used in our final model), we saw F1 scores of 0.5767098, 0.53946621, and 0.5949214. Averaging the three scores for each dataset, I find the best performing one to be the one with no mislabels but duplicates kept in, which makes sense considering a model is likely to do better without contradicting instances. The higher average score though could most likely be attributed to overfitting, since we decide to keep duplicates in; thus, if this cleaning methodology was used on the test dataset, the F1 score would most likely be lower than what the dataset with no mislabels and no duplicates could have outputted. Thus, I decided to use the one with neither mislabels nor duplicates in the BERT model. If I had more time available, I would certainly have tried the other three as well. 
+	Finally, we discuss performance of the BERT model. While the training and validation metric scores were outputted for each epoch after running the model code, these specific scores will not be discussed here. Instead, to better evaluate the model performance, I briefly discuss the charts I created of the validation set accuracy, precision, recall, and F1 score for the 2 folds over the 10 epochs and the charts of the train and validation for the 2 folds over the 10 epochs (Figure 1). 
 
-Specifically, we are using CycleGANs, a single network that uses multiple GANs to facilitate unpaired image-to-image translation.
-Using the horse-to-zebra example in Figure 2, there are two generators, one generator that generates horse images and another generator that generates zebra images.
-There are two discriminators, one discriminator that identifies real horse images and another discriminator that identifies real zebra images.
-Similar to GANs, there is discriminator loss and generator loss.
-However, the key insight of CycleGANs is the use of cycle consistency loss, in which the model ensures that the image is the same after being pushed back into different generators (7).
-With regard to the Figure 2 example, it is not only generating an image of any zebra or horse but rather a translated image of the inputted zebra or horse.
-It enforces this by minimizing the difference between an original horse image and the conversion of that horse image to a zebra image and the conversion of that zebra image to a horse image (7).
-This innovative design leads to the wide discussion of CycleGANs in the scientific literature and its encouragement by Kaggle.
-Therefore, we design our solution using CycleGANs, as opposed to other models such as neural style transfer models.
-While we did look into other state-of-the-art models, such as UVCGAN, the large training times, the amount of data used, and the large quantity of time required to understand other parts of deep learning, such as vision transformers, would have required our group to conduct in-depth-research and retool our project from scratch, rather than a simple swap of models (6).
+![](model_performance_charts.png)
+Figure 1: Charts of Validation Accuracy, Precision, Recall, and F1 for 2 Folds Over 10 Epochs (Left) and Charts of Train and Validation Loss for 2 Folds Over 10 Epochs (Right)
 
-![](../Project/Images/cyclegan_horse2zebra.png)
+From the graphs of the validation metric scores (Figure 1, Left charts), we notice that, for the first fold, the metrics follow a similar pattern of rapid increase in score in the first few epochs and then gradual decline in performance improvement as the number of epochs increases. The scores continue to increase all the way until epoch 10. The fact that these scores stay in a relatively similar area usually suggests that our model is not overfitting. For the second fold, the metric scores are a bit further apart, but still follow similar patterns of spike in the beginning, and gradual increase afterward; however, there are also two periods of spiking in scores that occur in the second fold, at epochs 5 and 9. I could not figure out why this may have happened, but I believe if I had more time to analyze the model and the results, I could understand what may have caused this. In terms of the train and validation loss graphs (Figure 1, right charts), we note that for both folds the pattern is almost identical of a fast decline (improvement) in loss and a gradual decline afterward. This type of decrease in loss is what we hope to see in our model as the amount of epochs trained on increases. We also hope that the train and validation loss are relatively similar, which is also the case, as shown by the two curves on each of the right plots. 
+Overall, I achieved a final F1 score of 0.812, placing me 311th/1228 on the leaderboard, or approximately in the 25th percentile. This placement should not be taken seriously, though, due to the large number of competitors who cheat and get a perfect score. Since the best scores are in the mid 80s, I am almost amongst the best performing competitors, even with only spending minimal time on this project. Therefore, with consideration of my time constraint, I would say my model did extremely well. 
 
-Figure 2: Illustration of how CycleGAN works using an example of horse-to-zebra translation (5)
+5.  **Future Steps/Model Improvements:**
 
-We use Kaggle Notebooks to operate on the data and perform the majority of the computation required for the project.
-It should be noted that due to the computational limits, we primarily referenced already existing experimental data (e.g., publicly shared Kaggle notebooks, research papers, etc.), instead of locally testing different configurations when building our model.
-However, one of the tests we did perform was to train our model at varying epoch levels.
-After trying out many different epochs through trial and error, we arrived at 120 epochs, which produced the best score for our Demo 1 model.
-
-There are two main components for training our model: the optimizers and the loss functions.
-Our initial model used an Adam optimizer with a loss rate of 0.0002 and Beta 1 of 0.5, which were selected by default as suggested by the CycleGAN paper (8).
-The paper also suggests that we should linearly decay the loss rate to zero towards the last set of epochs, however, we ran into issues implementing this functionality (for example, when training the model on Kaggle, we ran into a "RESOURCE_EXHAUSTED" memory allocation error) and decided to omit this step from the model.
-
-In terms of the loss functions used, we used four different loss functions: discriminator loss, generator loss, cycle loss, and identity loss.
-The discriminator loss we defined as the average of the binary cross entropy loss of both the real and generated images; the generator loss we defined as the binary cross entropy loss of only the generated images; the cycle loss we defined as the average absolute difference between the real and cycled image (e.g. photo-to-Monet-to-photo), multiplied by some hyperparameter lambda (set to 10 by default), and the identity loss we defined as the average absolute difference between the real and the same image (e.g. Monet-to-Monet), also multiplied by lambda.
-All the losses and their parameters were chosen according to the CycleGAN paper; we experiment with the loss functions in later models.
-During the training step of our model, we output four losses: the Monet generator loss, the photo generator loss, the Monet discriminator loss, and the photo discriminator loss.
-In the latest iteration of our competition model, we trained for 30 epochs (justification seen in Performance section) and added augmentations for the images before training the model.
-Specifically, we randomly resized, cropped, flipped, and rotated (by a multiple of 90 degrees) the images, as mentioned earlier.
-Furthermore, we were previously using a batch size of 1 with 300 steps per epoch, based on the number of Monet paintings existing in our data.
-Now, we have adjusted this batch size to 4 and are using the max number of images in our dataset (7038 images) divided by the new batch size to get our step size of 1834.
-Doing this not only boosted our performance, but it allows us to theoretically introduce more images into our model without adding to the runtime.
-Finally, we adjusted the generator loss function to include label smoothing, which is a regularization technique to prevent overfitting (10).
-It should be noted that the same model was used for the Cezanne, Ukiyo-e, and Van-Gogh generators as well, just with the artist data replaced accordingly.
-This would then generate different weights for the artists, which get fed into our website.
-
-To train the model, it took just under 2 hours to run on TPU v3-8, leaving just 1 hour of TPU time to be available for us---most of which was used to generate and save the images to persistent storage (a total of 46.80 minutes).
-Using the Kaggle-provided code for CycleGANs not only supports the strength of our baseline model, but it continues to be effective as we adjust the data and model.
-As will be explained in the Performance section below, CycleGANs appear to have been the correct choice for this project.
-
-2.  **Which feature engineering techniques were used? Justify your choice and describe the working of the techniques in the context of your project goals**
-
-With regard to feature engineering techniques, we did not use any specific feature engineering techniques.
-As alluded to in our data report, we utilized deep learning from the start of our development process, due to the recommendations from the Kaggle Competition.
-Referring to our previous section, the underlying CycleGAN architecture uses deep convolutional networks within its GANs.
-One of the key reasons for the high performance of the convolutional neural network for computer vision tasks is the built-in feature extraction within the convolutional network, as it gradually learns low-level features of an image to extract and uses these lower-level features to assemble higher-level features in the network.
-Since the features for our model were being implicitly extracted by these deep convolutional neural networks, we did not manually engineer features, as our model was organically discovering features of images on its own.
-
-3.  **Which metrics are used to evaluate the performance of chosen machine learning model(s)? How would you justify the choice of these metrics?**
-
-The success of the project is quantified using MiFID (Memorization informed Fréchet Inception Distance), a modification of FID (Fréchet Inception Distance) created by Kaggle.
-FID is a common metric used to assess the quality of images created by a generative model, such as a GAN.
-Unlike the Inception Score (IS)--another common metric for GAN evaluation described later--the FID compares the distribution of generated images with the distribution of a set of real/ground truth images.
-Specifically, FID computes the Fréchet distance between two Gaussian distributions fitted to feature representations of the Inception network (9).
-Here, one uses the Inception network to extract features from an intermediate layer.
-From there, one models the data distribution for these features using a multivariate Gaussian distribution with mean 𝜇 and covariance Σ.
-As provided by Kaggle, the FID between the real images _r_ and the generated images _g_ is computed as
-
-![](../Project/Images/fid.png)
-
-(1)
-
-where _Tr_ is the sum of the diagonal elements.
-
-On top of FID, this Kaggle competition takes into account training sample memorization in the performance metric.
-First, the memorization distance is calculated as the minimum cosine distance of the training samples in the feature space, averaged across all user-generated image samples (1).
-This distance is assigned a value of 1 if the distance exceeds a pre-defined epsilon.
-MiFID is then the FID metric multiplied by the inverse of the memorization distance (with the implemented threshold).
-
-![](../Project/Images/mifid.png)
-
-(1)
-
-Kaggle calculates public MiFID scores with the pre-trained neural network Inception, and the public images used for evaluation are the rest of the TFDS Monet Paintings.
-The competition calculates the MiFID score after we submit our code/solution on Kaggle, so we cannot recreate the calculations for our personal use (mostly due to the memorization distance).
-That is, this competition keeps our performance hidden from us until after submission, which becomes problematic as the code takes 2+ hours to run.
-We would also need a method to measure our performance to complete the proposed steps that extend beyond the scope of the competition.
-Therefore, we looked into how to calculate FID ourselves, and wrote corresponding functions in our scripts to do so.
-FID is also a common scoring metric for GANs, so we can use this formulation to compare our models and scores with previous/related work.
-This then will help us understand how to boost our performance.
-On a theoretical level, it would also not make sense to use FID as the evaluation for the competition model, as the train/test split for paintings is unknown, and the images used in training the competition model are the same images used in its evaluation.
-
-While FID is the most common metric used by others in the domain, Inception Score is also popular.
-This score takes a list of images and returns a single floating-point number, which is a score of how realistic the GAN's output is (2).
-The score measures the variety of the images as well as their distinct quality (each image looks like an actual distinct entity).
-The Inception Score is high when both of these quality scores are high.
-Unfortunately, IS does not capture how synthetic images compare to real images; that is, IS will only evaluate the distribution of the generated images.
-Therefore, FID was developed to evaluate synthetic images based on a comparison of the synthetic images to the real images from the target domain (2).
-While it is true that FID commonly produces high bias, this is no less true for Inception Score.
-This and the fact that Inception Score is limited by what the Inception (or other networks) classifier can detect, FID is more popularly used to score GANs today and is what we will use for our project.
-
-4.  **Provide evaluations of your machine learning model(s) using the defined performance metrics.**
-
-Regarding our performance for Demos 1 and 2, the line graph below (Figure 3) demonstrates our score improvement.
-
-![](../Project/Images/epochs_vs_mifid_improved.png)
-
-Figure 3: Chart of our Phase 1 and 2 Demo models' MiFID scores trained at different epochs
-
-We began with running the CycleGAN for 2 epochs and received a MiFID score of 89.93, placing us toward the bottom of the leaderboard.
-From there, we tried 60 and 100 epochs, getting scores of 62.70 and 51.78, respectively.
-Noticing that an increase in epochs correlated with a decrease in MiFID value (increase in score), we decided to run our code for 150 epochs and got a score of 55.56.
-This slight increase made it clear that the optimal MiFID score would exist between 100 and 150 epochs, so we did one last run at 120 epochs before the Demo 1 presentation.
-This led to a MiFID score of 51.49, placing us 49/94 (\~52nd percentile) on the leaderboard.
-With the best scores being in the mid-30s, we realized we would need to try other things to push our score up.
-The data preparation and label smoothing steps described in the model section led to a higher MiFID score of 39.73, placing us 17/143 (\~12th percentile) on the leaderboard.
-As shown by the Demo 2 line (orange), we tried our model at 10, 15, 20, 25, and 30 epochs, with 30 epochs displaying the best MiFID.
-This score varies slightly due to the random nature of model parameter initialization.
-These previous models used a constant learning rate of 2e-4 for training.
-In the final phase, we experimented with a decaying learning rate (using 2e-4 for the first 10 epochs, 1.5e-4 for the next 10 epochs, 1e-5 for the next 5 epochs, and 5e-6 for the last 5 epochs).
-We were able to get a small improvement in the MiFID for the photo-to-monet competition model, as we went from an MiFID score of 39.73 to our current best MiFID score of 38.30.
-This places us 12/150 on the leaderboard (\~8th percentile).
-We discuss decaying learning rate further in the Future Model Improvements section.
-
-As mentioned prior, we needed to use FID to measure our performances for the other artists, which are neatly summarized in the line graph below.
-
-![](../Project/Images/epochs_vs_fid.png)
-
-Figure 6: Chart of our FID scores trained at different epochs for Monet,
-
-Ukiyo-e, Cezanne, and Van Gogh For these artists, epoch levels of 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, and 135 were tested. For Monet, the optimal FID score is 102.74 at 100 epochs.
-For Ukiyo-e, the optimal FID score is 157.04 at 120 epochs.
-For Cezanne, the optimal FID score is 127.26 at 80 epochs.
-Finally, for Van Gogh, the optimal FID score is 109.88 at 120 epochs.
-
-![](../Project/Images/epoch_fid_monet.jpg)
-
-Figure 7: Chart of our FID scores at different epochs for Monet individually
-
-![](../Project/Images/epoch_fid_ukiyoe.jpg)
-
-Figure 8: Chart of our FID scores at different epochs for Ukiyo-e individually
-
-![](../Project/Images/epoch_fid_cezanne.jpg)
-
-Figure 9: Chart of our FID scores at different epochs for Cezanne individually
-
-![](../Project/Images/epoch_fid_vangogh.jpg)
-
-Figure 10: Chart of our FID scores at different epochs for Van Gogh individually
-
-By zooming in on the non-competition models for each artist, we notice some trends emerge.
-In Figure 7, we can see that there appear to be two periods of rapid learning, in that the FID score drops sharply and dramatically between two epochs.
-For Monet paintings, this occurs between epoch 60 and epoch 70 and between epoch 90 and epoch 100.
-A similar phenomenon of rapid learning occurs with the Ukiyo-e models, as Figure 8 has a similarly-shaped decline between epoch 60 and epoch 80.
-In Figure 9, this period of large score improvement can be seen in the models for Cezanne paintings between epochs 1-20, 40-60, and 100-120.
-While Figure 10 demonstrates a sharp decline occurs in the models for Van Gogh paintings between epochs 10 and 20, this decline is not as sharp as the declines in models for other paintings and only appears to occur once throughout the training process.
-
-Another trend that emerges is that all the models reach their lowest FID score between epochs 80-120.
-This indicates that all models begin to experience overfitting in the later stages of the training process.
-Also, if we use the lowest FID scores for an artist as a proxy for model quality, Monet paintings are the most well-suited for painting-to-photo translation, while Ukiyo-e paintings are the least well-suited.
-This is not surprising, as Monet uses a particularly distinctive color scheme in his paintings, while Ukiyo-e is not an individual painter, but describes a style that was used by multiple artists.
-Since multiple artists can paint a Ukiyo-e image, it is understandable that a model would find the task more difficult, as there is more variation between paintings.
-With regard to these observations, it is important to note that only a select number of epochs were collected due to time and compute constraints, so these observations are limited by this small sample size.
-
-Our performance should not only be measured by our MiFID and FID scores but also by examining the outputted images.
-One result is displayed below, along with the result from using the author's model weights (8).
-
-[<img src="../Project/Images/good_example_photo.jpg" width="256">](../Project/Images/good_example_photo.jpg)
-[<img src="../Project/Images/good_example_ours.jpg" width="256">](../Project/Images/good_example_ours.jpg)
-[<img src="../Project/Images/good_example_authors.jpg" width="256">](../Project/Images/good_example_authors.jpg)
-
-Figure 11: A photo (left), our generated Monet-style painting of the photo (middle), and a generated Monet-style painting of the photo using the author's model weights (8).
-
-In Figure 11 above, we notice that both resulting paintings seem like good takes on the Monet version of the image, just slightly different in their outcome.
-Our sky appears to have more blur in some areas, while the author's sky is more saturated and plain.
-The author's grass and rocks also have deeper color shades than ours, but both seem to look like "Monet-ified" versions of the original image.
-Figure 12 below demonstrates a bad example output.
-
-[<img src="../Project/Images/bad_example_photo.png" width="256">](../Project/Images/bad_example_photo.png)
-[<img src="../Project/Images/bad_example_ours.png" width="256">](../Project/Images/bad_example_ours.png)
-[<img src="../Project/Images/bad_example_authors.png" width="256">](../Project/Images/bad_example_authors.png)
-
-Figure 12: A photo (left), our generated Monet-style painting of the photo (middle), and a generated Monet-style painting of the photo using the author's model weights (8).
-
-As this example helps to demonstrate, our model does not always do well on darker images, as it blurs the sky and omits the stars; in contrast, the author's output captured the essence of the stars in the sky without blurring anything.
-The colors are again deeper shades in the author's output compared to ours.
-Overall, we ended up noticing that our model does just as well with nature and sprawling images (e.g., skies, meadows, oceans) as the author's model.
-However, the model does poorly sometimes when the photos are detailed or contain non-natural things such as buildings and people.
-
-5.  **Future Model Improvements:**
-
-If we had unlimited time and computational power, there are a wide variety of next steps we would take to improve our models.
-First, we would increase the number of epochs in the training of our model to gather more data regarding whether increasing the number of epochs improves the performance of our model, or if it leads to overfitting.
-In a related vein, we would also gather FID scores for evaluation for every epoch that is used to train a model, instead of gathering data from select epochs.
-This would allow us to have a more detailed understanding of how the model evolves and could potentially lead to a slightly higher-performing model being discovered.
-On top of this, we would also experiment with lowering the batch size, as the authors used a batch size of 1 in their final model (7).
-While we did not have the time to experiment with our batch size in our project, we also did not have the computational resources to do so, as a model with a smaller batch size would take longer to train than the same model with a larger batch size.
-
-Finally, we would also further experiment with a decaying learning rate.
-As mentioned in the Performance section, we experimented with a decaying learning rate to get a small improvement in the MiFID for the photo-to-monet competition model.
-While this technique did improve our rank on the leaderboard, there are a few things to consider when applying it.
-The first thing to take into consideration is the possible overfitting of the model---while we do not know how to measure whether the model is overfitted, we can inspect the model's predictions to determine whether the results match our expectations.
-Something else we need to consider is since we manually selected the learning rates at each epoch, the process is currently not generalizable using a different number of epochs, for example.
-To remedy this, we would use a linearly decaying learning rate that adjusts the decay rate according to an initial learning rate, $L_{0}$, a final learning rate, $L_{f}$, and the final number of epochs $N$ and determining the learning rate $y$ at a given epoch $x$ using the equation $y = L_{0} - \left(\frac{L_{0} - L_{f}}{N}\right)x$ where $x \in \{ 1\ \leq x \leq N\}\ $.
+While not mentioned in the instructions for the model and performance report, I wanted to provide a brief overview of what future steps for this project would include, since I did not have time to complete all the steps I wanted to. First, as mentioned prior, I would try including the features I engineered into my BERT model to see if they would boost performance. I would do variations of the inclusion of these features as well (potentially even doing PCA) to also measure the performance changes. Next, I would also try the other three datasets I created, as mentioned before. Moving on, I would experiment more with back translation. The previous team for this course tried to make use of this technique–which translates the text into another language and back into English–but ran into issues with runtime. I personally could not get their function to run with my Python library versions, and due to my time constraints, I decided to put this technique on the back burner. I am certainly interested to see how it could affect performance, however. The next thing I would like to do in the future is to experiment more with BERT model parameters. For almost all parameters fed into this model, I just used those values being used by top competitors in the competition due to my lack of time to play around with them. Evidently, hyperparameter tuning can lead to model performance improvement and thus should be done with my processed version of the data. Finally, I would like to try other deep learning models in the future to 1) learn about other models that would be good to use for such a NLP problem, 2) try to code and successfully run other deep learning models, and 3) see how they change the model performance. 
 
 **References:**
 
-1.  Jang, A., Uzsoy, A. S., & Culliton, P. (2020). _I'm Something of a Painter Myself_. Kaggle. Retrieved April 10, 2023, from [https://www.kaggle.com/competitions/gan-getting-started](https://www.kaggle.com/competitions/gan-getting-started)
 
-2.  Mack, D. (2019, March 7). _A simple explanation of the Inception Score_. Medium. Retrieved April 10, 2023, from [https://medium.com/octavian-ai/a-simple-explanation-of-the-inception-score-372dff6a8c7a](https://medium.com/octavian-ai/a-simple-explanation-of-the-inception-score-372dff6a8c7a)
-
-3.  Goodfellow, I. J., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., & Bengio, Y. (2014, June 10). _Generative Adversarial Networks_. arXiv.org. Retrieved April 10, 2023, from [https://arxiv.org/abs/1406.2661](https://arxiv.org/abs/1406.2661)
-
-4.  Google Developers. (2022, July 18). _Overview of GAN Structure_. Google. Retrieved April 10, 2023, from [https://developers.google.com/machine-learning/gan/gan_structure](https://developers.google.com/machine-learning/gan/gan_structure)
-
-5.  Haiku Tech Center. (2020, November 1). _CycleGAN: A GAN architecture for learning unpaired image to image transformations_. Haiku Tech Center. Retrieved April 10, 2023, from [https://www.haikutechcenter.com/2020/11/cyclegan-gan-architecture-for-learning.html](https://www.haikutechcenter.com/2020/11/cyclegan-gan-architecture-for-learning.html)
-
-6.  LS4GAN Group. (2022, August 9). _LS4GAN/Benchmarking_. GitHub. Retrieved April 10, 2023, from [https://github.com/LS4GAN/benchmarking](https://github.com/LS4GAN/benchmarking)
-
-7.  Zhu, J.-Y., Park, T., Isola, P., & Efros, A. A. (2020, August 24). _Unpaired Image-To-Image Translation using Cycle-Consistent Adversarial Networks_. arXiv.org. Retrieved April 10, 2023, from https://arxiv.org/abs/1703.10593
-
-8.  Zhu, J.-Y. (2023, March). _Junyanz/Pytorch-Cyclegan-and-pix2pix: Image-to-image translation in pytorch_. GitHub. Retrieved April 10, 2023, from [https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
-
-9.  Wikipedia. (2023, March 25). _Fréchet inception distance_. Wikipedia. Retrieved April 10, 2023, from [https://en.wikipedia.org/wiki/Fr%c3%a9chet_inception_distance](https://en.wikipedia.org/wiki/Fr%c3%a9chet_inception_distance)
-
-10. Shah, P. (2021, June 3). _Label Smoothing - Make your model less (over)confident_. Medium. Retrieved April 12, 2023, from https://towardsdatascience.com/label-smoothing-make-your-model-less-over-confident-b12ea6f81a9a
